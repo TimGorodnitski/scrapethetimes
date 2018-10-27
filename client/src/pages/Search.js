@@ -1,14 +1,22 @@
 import React from "react";
 import axios from "axios";
 import Result from "../components/Result";
+// import Saved from "../components/Saved";
 
 class Admin extends React.Component {
   state = {
     searchTerm: "",
     startYear: "",
     endYear: "",
-    articles: []
+    articles: [],
+    savedArticles: []
   }
+
+  componentDidMount(){
+    console.log("about to display save article")
+    this.displaySaveArticle();
+  }
+
 
   handleInputChange = event => {
     this.setState({
@@ -22,10 +30,33 @@ class Admin extends React.Component {
     const queryUrl = "https://api.nytimes.com/svc/search/v2/articlesearch.json?api-key=" + apiKey + "&q=" + this.state.searchTerm + "&begin_date=" + this.state.startYear + "0101&end_date=" + this.state.endYear + "0101";
 
     return axios.get(queryUrl).then((res) =>{
-      console.log(res);
       this.setState({articles: res.data.response.docs});
     });
   }
+
+  SaveArticle = (id) => {
+    const articleID = this.state.articles.find((item) => item._id === id);
+    console.log("article id: " + articleID);
+    axios.post("/articles", {title:articleID.headline.main, date: articleID.pub_date, url: articleID.web_url})
+    .then(this.displaySaveArticle());
+  }
+
+  DeleteArticle = (id) => {
+    // const articleID = this.state.savedArticles.find((item) => item._id === id);
+    axios.delete("/articles", {_id: id})
+    .then(this.displaySaveArticle());
+  }
+
+  displaySaveArticle = () =>{
+    axios.get("/articles").then((res) => {
+      console.log("displaysavearticle is happening :" + res.data)
+      this.setState({
+        savedArticles: res.data
+      })
+      console.log(this.state.savedArticles)
+    })
+  }
+
 
   handleSubmit = (event) =>{
     event.preventDefault();
@@ -41,7 +72,7 @@ class Admin extends React.Component {
 
           <div className="panel panel-primary">
             <div className="panel-heading">
-              <h3 className="panel-title"><strong><i className="fa  fa-list-alt"></i>   Search Parameters</strong></h3>
+              <h3 className="panel-title"><strong><i className="fa  fa-list-alt"></i>  Search Parameters</strong></h3>
             </div>
             <div className="panel-body">
 
@@ -84,11 +115,15 @@ class Admin extends React.Component {
             <div className="panel-body" id="well-section">
               <Result
                 articles={this.state.articles}
-                handleSaveArticle={this.handleSaveArticle}
+                SaveArticle={this.SaveArticle}
               />
             </div>
           </div>
+
+
           <hr></hr>
+
+
           <div className="panel panel-primary">
             
             <div className="panel-heading">
@@ -96,7 +131,25 @@ class Admin extends React.Component {
             </div>
 
             <div className="panel-body" id="well-section">
-              {/* <Saved /> */}
+              <ul className="list-group search-results">
+                {this.state.savedArticles.map(article => (
+                  <li id="article._id" name="result" className="well">
+                    <h3 className="articleHeadline">
+                    <strong>
+                      {article._id}
+                      {article.title}
+                    </strong>
+                    </h3>
+                    <h4>
+                      {article.date}
+                    </h4>
+                    <h4>
+                      <a target="_blank" href={article.url}>{article.url}</a>
+                    </h4>
+                    <button type="button" className="btn btn-default danger" id="delete" onClick={() => this.DeleteArticle(article._id)}><i className="fa fa-send"></i> Delete Article</button>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
